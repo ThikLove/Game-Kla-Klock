@@ -6,7 +6,7 @@ import CrabImg from "./assets/symbols/Crab.png";
 import RoosterImg from "./assets/symbols/Rooster.png";
 import ShrimpImg from "./assets/symbols/Shrimp.png";
 import TigerImg from "./assets/symbols/Tiger.png";
-import GourdImg from "./assets/symbols/gourd.png";
+import GourdImg from "./assets/symbols/Gourd.png";
 import FishImg from "./assets/symbols/Fish.png";
 
 const SYMBOL_IMG = {
