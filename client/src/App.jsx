@@ -27,7 +27,14 @@ const KH_NAME = {
   fish: "ត្រី",
 };
 
-const FALLBACK_SYMBOLS = ["tiger", "gourd", "rooster", "shrimp", "crab", "fish"];
+const FALLBACK_SYMBOLS = [
+  "tiger",
+  "gourd",
+  "rooster",
+  "shrimp",
+  "crab",
+  "fish",
+];
 
 export default function App() {
   const [roomId, setRoomId] = useState("room1");
@@ -38,9 +45,9 @@ export default function App() {
   const [isHost, setIsHost] = useState(false);
   const myIdRef = useRef(null);
 
-  const [symbols, setSymbols] = useState([]);
+  const [symbols, setSymbols] = useState(FALLBACK_SYMBOLS);
   const [players, setPlayers] = useState([]);
-  const [coins, setCoins] = useState(0);
+  const [coins, setCoins] = useState(100);
   const [bets, setBets] = useState({});
   const [dice, setDice] = useState(["fish", "fish", "fish"]);
   const [msg, setMsg] = useState("");
@@ -55,6 +62,7 @@ export default function App() {
   const [chatText, setChatText] = useState("");
   const chatBoxRef = useRef(null);
 
+  // ✅ SOCKET EVENTS
   useEffect(() => {
     const onConnect = () => {
       myIdRef.current = socket.id;
@@ -62,6 +70,7 @@ export default function App() {
 
     const onRoomState = (state) => {
       setJoined(true);
+
       setHostId(state.hostId);
       setIsHost(state.hostId === myIdRef.current);
 
@@ -73,7 +82,7 @@ export default function App() {
       const me = (state.players || []).find((p) => p.id === myIdRef.current);
       setCoins(me?.coins ?? 100);
 
-      // ✅ update bets from server (myBets)
+      // ✅ Update my bets from server
       const myBets = state.myBets || {};
       const next = {};
       syms.forEach((s) => (next[s] = Number(myBets[s] || 0)));
@@ -116,6 +125,7 @@ export default function App() {
     };
   }, []);
 
+  // ✅ Auto-scroll chat
   useEffect(() => {
     if (!chatBoxRef.current) return;
     chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
@@ -140,9 +150,17 @@ export default function App() {
     if (!joined || busy) return;
 
     if (amount > 0) {
-      socket.emit("place_bet", { roomId, symbol: id, amount: Math.abs(amount) });
+      socket.emit("place_bet", {
+        roomId,
+        symbol: id,
+        amount: Math.abs(amount),
+      });
     } else if (amount < 0) {
-      socket.emit("remove_bet", { roomId, symbol: id, amount: Math.abs(amount) });
+      socket.emit("remove_bet", {
+        roomId,
+        symbol: id,
+        amount: Math.abs(amount),
+      });
     }
   };
 
@@ -174,6 +192,7 @@ export default function App() {
         rollAudioRef.current.pause();
         rollAudioRef.current.currentTime = 0;
       }
+
       socket.emit("roll", { roomId });
       setRolling3d(false);
       setBusy(false);
@@ -207,10 +226,24 @@ export default function App() {
       <audio ref={rollAudioRef} src="/sfx/roll.mp3" preload="auto" />
 
       <div className="lobbyBar">
-        <input className="lobbyInput" value={name} onChange={(e) => setName(e.target.value)} placeholder="ឈ្មោះ" />
-        <input className="lobbyInput" value={roomId} onChange={(e) => setRoomId(e.target.value)} placeholder="Room ID" />
-        <button className="lobbyBtn" onClick={createRoom}>Create</button>
-        <button className="lobbyBtn" onClick={joinRoom}>Join</button>
+        <input
+          className="lobbyInput"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="ឈ្មោះ"
+        />
+        <input
+          className="lobbyInput"
+          value={roomId}
+          onChange={(e) => setRoomId(e.target.value)}
+          placeholder="Room ID"
+        />
+        <button className="lobbyBtn" onClick={createRoom}>
+          Create
+        </button>
+        <button className="lobbyBtn" onClick={joinRoom}>
+          Join
+        </button>
 
         <div className="lobbyInfo">
           {joined ? (
@@ -234,53 +267,88 @@ export default function App() {
         </div>
 
         <div className="board2">
+          {/* LEFT RESULTS */}
           <div className="leftStack">
             {resultLeft.map((id, i) => (
-              <div key={i} className={`qCircle qCircle--img ${id ? "qCircle--pop" : ""}`}>
+              <div
+                key={i}
+                className={`qCircle qCircle--img ${id ? "qCircle--pop" : ""}`}
+              >
                 {id ? <img src={SYMBOL_IMG[id]} alt={id} /> : "?"}
               </div>
             ))}
           </div>
 
+          {/* CENTER BETS */}
           <div className="center2">
             <div className="tilesWrap">
               {symbols.map((id) => (
-                <div key={id} className={`tile2 ${bets[id] > 0 ? "tile2--active" : ""}`}>
+                <div
+                  key={id}
+                  className={`tile2 ${bets[id] > 0 ? "tile2--active" : ""}`}
+                >
                   <img className="tile2Img" src={SYMBOL_IMG[id]} alt={id} />
                   <div className="tileName">{KH_NAME[id]}</div>
 
                   <div className="tileBet">
-                    <button className="betBtn2" onClick={() => addBet(id, -10)} disabled={busy}>−</button>
+                    <button
+                      className="betBtn2"
+                      onClick={() => addBet(id, -10)}
+                      disabled={busy}
+                    >
+                      −
+                    </button>
                     <div className="betValue2">{bets[id] || 0}</div>
-                    <button className="betBtn2" onClick={() => addBet(id, 10)} disabled={busy}>+</button>
+                    <button
+                      className="betBtn2"
+                      onClick={() => addBet(id, 10)}
+                      disabled={busy}
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
 
             <div className="hud2">
-              <div><b>ភ្នាល់សរុប:</b> {totalBet.toLocaleString()}</div>
+              <div>
+                <b>ភ្នាល់សរុប:</b> {totalBet.toLocaleString()}
+              </div>
               {msg && <div className="msg2">{msg}</div>}
               <div className="version">Version : 1.0.0</div>
             </div>
           </div>
 
+          {/* RIGHT BOWL + SIDE PANEL */}
           <div className="right2">
             <div className={`bowl2 ${rolling3d ? "bowl2--shake" : ""}`}>
               <div className="diceRow2">
                 {dice.map((id, i) => (
                   <div key={i} className="die3d">
-                    <img className={`die3dImg ${rolling3d ? "die3dImg--blur" : ""}`} src={SYMBOL_IMG[id]} alt={id} />
+                    <img
+                      className={`die3dImg ${
+                        rolling3d ? "die3dImg--blur" : ""
+                      }`}
+                      src={SYMBOL_IMG[id]}
+                      alt={id}
+                    />
                   </div>
                 ))}
               </div>
             </div>
 
-            <button className="rollBtn2" onClick={onRoll} disabled={busy || !joined || totalBet <= 0 || !isHost}>
+            <button
+              className="rollBtn2"
+              onClick={onRoll}
+              disabled={busy || !joined || totalBet <= 0 || !isHost}
+            >
               ក្រឡុក
             </button>
 
-            {!isHost && joined && <div className="hint">តែ Host ទេអាចក្រឡុកបាន</div>}
+            {!isHost && joined && (
+              <div className="hint">តែ Host ទេអាចក្រឡុកបាន</div>
+            )}
 
             <div className="sidePanel">
               <div className="panelTitle">Players ({players.length}/4)</div>
@@ -291,13 +359,18 @@ export default function App() {
                   const isHostPlayer = p.id === hostId;
 
                   return (
-                    <div key={p.id} className={`playerRow ${isYou ? "playerRow--you" : ""}`}>
+                    <div
+                      key={p.id}
+                      className={`playerRow ${isYou ? "playerRow--you" : ""}`}
+                    >
                       <span className="pName">
                         {isHostPlayer && <span className="badgeHost">👑</span>}
                         {p.name}
                         {isYou && <span className="badgeYou">(You)</span>}
                       </span>
-                      <span className="pCoin">🪙 {p.coins}</span>
+                      <span className="pCoin">
+                        🪙 {Number(p.coins || 0).toLocaleString()}
+                      </span>
                     </div>
                   );
                 })}
@@ -321,7 +394,11 @@ export default function App() {
                   onKeyDown={(e) => e.key === "Enter" && sendChat()}
                   disabled={!joined}
                 />
-                <button className="chatSend" onClick={sendChat} disabled={!joined}>
+                <button
+                  className="chatSend"
+                  onClick={sendChat}
+                  disabled={!joined}
+                >
                   Send
                 </button>
               </div>
